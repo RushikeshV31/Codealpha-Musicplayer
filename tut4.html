@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Music Player</title>
+  <style>
+    * {margin: 0; padding: 0; box-sizing: border-box;}
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #6a11cb, #2575fc);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: #fff;
+    }
+    .player {
+      background: rgba(0,0,0,0.7);
+      padding: 25px;
+      border-radius: 15px;
+      width: 350px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    }
+    .song-info {
+      margin-bottom: 20px;
+    }
+    .song-title {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .song-artist {
+      font-size: 14px;
+      color: #ccc;
+    }
+    .controls {
+      margin: 20px 0;
+    }
+    .controls button {
+      background: #fff;
+      border: none;
+      border-radius: 50%;
+      margin: 0 10px;
+      padding: 12px;
+      cursor: pointer;
+      font-size: 18px;
+      transition: transform 0.3s;
+    }
+    .controls button:hover {transform: scale(1.2);}
+    .progress-container {
+      background: #444;
+      border-radius: 5px;
+      height: 6px;
+      cursor: pointer;
+      margin: 15px 0;
+    }
+    .progress {
+      background: #1db954;
+      height: 100%;
+      width: 0%;
+      border-radius: 5px;
+    }
+    .time {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #ccc;
+    }
+    .volume-container {
+      margin-top: 15px;
+    }
+    input[type="range"] {
+      width: 100%;
+    }
+    .playlist {
+      margin-top: 20px;
+      text-align: left;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    .playlist div {
+      padding: 8px;
+      cursor: pointer;
+      border-bottom: 1px solid #444;
+    }
+    .playlist div:hover {background: #333;}
+    .active {color: #1db954;}
+  </style>
+</head>
+<body>
+  <div class="player">
+    <div class="song-info">
+      <div class="song-title">Select a Song</div>
+      <div class="song-artist"></div>
+    </div>
+    <div class="controls">
+      <button id="prev">⏮</button>
+      <button id="play">▶</button>
+      <button id="next">⏭</button>
+    </div>
+    <div class="progress-container" id="progress-container">
+      <div class="progress" id="progress"></div>
+    </div>
+    <div class="time">
+      <span id="current-time">0:00</span>
+      <span id="duration">0:00</span>
+    </div>
+    <div class="volume-container">
+      Volume: <input type="range" id="volume" min="0" max="1" step="0.01" value="0.7">
+    </div>
+    <div class="playlist" id="playlist"></div>
+  </div>
+
+  <script>
+    const songs = [
+      {title: "On & On", artist: "Cartoon ft. Daniel Levi", src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"},
+      {title: "Dreams", artist: "Joakim Karud", src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"},
+      {title: "Energy", artist: "Bensound", src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"},
+      {title: "Adventure", artist: "Declan DP", src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"}
+    ];
+
+    let currentSongIndex = 0;
+    const audio = new Audio(songs[currentSongIndex].src);
+    const playBtn = document.getElementById("play");
+    const prevBtn = document.getElementById("prev");
+    const nextBtn = document.getElementById("next");
+    const progress = document.getElementById("progress");
+    const progressContainer = document.getElementById("progress-container");
+    const currentTimeEl = document.getElementById("current-time");
+    const durationEl = document.getElementById("duration");
+    const volumeSlider = document.getElementById("volume");
+    const titleEl = document.querySelector(".song-title");
+    const artistEl = document.querySelector(".song-artist");
+    const playlistEl = document.getElementById("playlist");
+
+    // Load playlist
+    songs.forEach((song, index) => {
+      const div = document.createElement("div");
+      div.textContent = `${song.title} - ${song.artist}`;
+      div.addEventListener("click", () => loadSong(index));
+      playlistEl.appendChild(div);
+    });
+
+    function loadSong(index) {
+      currentSongIndex = index;
+      audio.src = songs[index].src;
+      titleEl.textContent = songs[index].title;
+      artistEl.textContent = songs[index].artist;
+      document.querySelectorAll(".playlist div").forEach((div, i) => {
+        div.classList.toggle("active", i === index);
+      });
+      playSong();
+    }
+
+    function playSong() {
+      audio.play();
+      playBtn.textContent = "⏸";
+    }
+
+    function pauseSong() {
+      audio.pause();
+      playBtn.textContent = "▶";
+    }
+
+    playBtn.addEventListener("click", () => {
+      if (audio.paused) playSong();
+      else pauseSong();
+    });
+
+    nextBtn.addEventListener("click", () => {
+      currentSongIndex = (currentSongIndex + 1) % songs.length;
+      loadSong(currentSongIndex);
+    });
+
+    prevBtn.addEventListener("click", () => {
+      currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+      loadSong(currentSongIndex);
+    });
+
+    // Update progress bar
+    audio.addEventListener("timeupdate", () => {
+      const { currentTime, duration } = audio;
+      progress.style.width = `${(currentTime / duration) * 100}%`;
+      updateTime(currentTimeEl, currentTime);
+      updateTime(durationEl, duration);
+    });
+
+    function updateTime(el, time) {
+      const minutes = Math.floor(time / 60) || 0;
+      const seconds = Math.floor(time % 60) || 0;
+      el.textContent = `${minutes}:${seconds < 10 ? "0" + seconds : seconds}`;
+    }
+
+    // Seek
+    progressContainer.addEventListener("click", (e) => {
+      const width = progressContainer.clientWidth;
+      const clickX = e.offsetX;
+      audio.currentTime = (clickX / width) * audio.duration;
+    });
+
+    // Volume
+    volumeSlider.addEventListener("input", (e) => {
+      audio.volume = e.target.value;
+    });
+
+    // Autoplay next
+    audio.addEventListener("ended", () => {
+      nextBtn.click();
+    });
+
+    // Load first song by default
+    loadSong(currentSongIndex);
+  </script>
+</body>
+</html>
